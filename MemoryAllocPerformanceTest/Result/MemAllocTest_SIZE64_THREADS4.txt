@@ -1,0 +1,48 @@
+Thread ID : 5148 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+    NEW MULTIPLES |        64.9772us |        52.9000us |      1250.5000us |          10000
+ DELETE MULTIPLES |        24.2521us |        21.8000us |       203.8000us |          10000
+Thread ID : 6128 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+    NEW MULTIPLES |        50.5606us |        48.0000us |      2479.2000us |          10000
+ DELETE MULTIPLES |        23.1334us |        22.5000us |      3380.8000us |          10000
+Thread ID : 6004 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+    NEW MULTIPLES |        65.9430us |        57.8000us |      4837.1000us |          10000
+ DELETE MULTIPLES |        23.7872us |        21.9000us |       141.7000us |          10000
+Thread ID : 2188 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+    NEW MULTIPLES |        54.1057us |        51.7000us |      2408.3000us |          10000
+ DELETE MULTIPLES |        23.4234us |        22.8000us |       760.3000us |          10000
+Thread ID : 5516 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+LOCK-FREE ALLOC MULTIPLES |       636.4627us |        18.5000us |      2749.9000us |          10000
+LOCK-FREE RELEASE MULTIPLES |       344.4105us |        19.2000us |      3494.5000us |          10000
+Thread ID : 5768 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+LOCK-FREE ALLOC MULTIPLES |       634.4615us |       243.3000us |      1169.0000us |          10000
+LOCK-FREE RELEASE MULTIPLES |       343.7421us |        88.1000us |       557.1000us |          10000
+Thread ID : 7144 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+LOCK-FREE ALLOC MULTIPLES |       637.0181us |       108.0000us |      1081.9000us |          10000
+LOCK-FREE RELEASE MULTIPLES |       343.5996us |        54.5000us |      1548.0000us |          10000
+Thread ID : 7044 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+LOCK-FREE ALLOC MULTIPLES |       637.2705us |        48.6000us |      1494.3000us |          10000
+LOCK-FREE RELEASE MULTIPLES |       343.5279us |        86.7000us |       600.9000us |          10000
+Thread ID : 6944 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+TLS ALLOC MULTIPLES |         9.3277us |         9.0000us |       107.3000us |          10000
+TLS RELEASE MULTIPLES |         8.5782us |         8.2000us |        33.0000us |          10000
+Thread ID : 2388 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+TLS ALLOC MULTIPLES |         8.4130us |         8.3000us |         9.2000us |          10000
+TLS RELEASE MULTIPLES |         8.5861us |         8.2000us |        27.0000us |          10000
+Thread ID : 3504 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+TLS ALLOC MULTIPLES |         8.4223us |         8.3000us |        20.3000us |          10000
+TLS RELEASE MULTIPLES |         8.5894us |         8.2000us |        19.9000us |          10000
+Thread ID : 6648 =========================================================================
+                            Name |          Average |              Min |              Max |           Call
+TLS ALLOC MULTIPLES |         8.5844us |         8.2000us |        30.0000us |          10000
+TLS RELEASE MULTIPLES |         8.5544us |         8.1000us |        23.9000us |          10000
