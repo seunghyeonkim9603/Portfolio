@@ -181,10 +181,10 @@ void GameThread::OnUpdate()
 
 				float range = INTERACTION_RANGE / 2;
 
-				rect[0] = { monPosX - range, monPosY - INTERACTION_RANGE };
-				rect[1] = { monPosX - range, monPosY };
-				rect[2] = { monPosX + range, monPosY };
-				rect[3] = { monPosX + range, monPosY - INTERACTION_RANGE };
+				rect[0] = { monPosX - range, monPosY - INTERACTION_RANGE + 0.2};
+				rect[1] = { monPosX - range, monPosY  + 0.2};
+				rect[2] = { monPosX + range, monPosY + 0.2};
+				rect[3] = { monPosX + range, monPosY - INTERACTION_RANGE + 0.2};
 
 				RotateRectangle(rect, 4, monster->Rotation, monPosX, monPosY);
 
@@ -212,6 +212,7 @@ void GameThread::OnUpdate()
 		{
 			break;
 		}
+		deadMonster->Target = nullptr;
 		InitMonsterPos(deadMonster);
 
 		int sectorX = deadMonster->TileX / TILES_PER_SECTOR;
@@ -237,6 +238,8 @@ void GameThread::OnClientThreadJoin(sessionID_t id, void* transffered)
 {
 	Player* joined = (Player*)transffered;
 
+	Logger::AppendLine(L"Rot : %d", joined->Rotation);
+	Logger::Log(LOG_FILE_NAME);
 	OnPlayerSpawn(joined);
 	mPlayers.insert({ id, joined });
 
@@ -696,8 +699,6 @@ void GameThread::OnMonsterAttack(Monster* monster, Player* target)
 		}
 		ReleaseMessage(resPlayerDie);
 
-		Logger::AppendLine(L"res Die accountno %d", target->AccountNo);
-		Logger::Log(LOG_FILE_NAME);
 		mLogDBWriter->Write("INSERT INTO `logdb`.`gamelog`(type, code, accountno, servername, param1, param2, param3) VALUES(3, 31, %lld, \"game\", %d, %d, %d)",
 			target->AccountNo, target->TileX, target->TileY, target->Cristal);
 	}
@@ -711,10 +712,10 @@ void GameThread::GetObjectsInInteractionRange(Object* obj, std::vector<Object*>*
 	float posY = obj->PosY;
 	float range = INTERACTION_RANGE / 2;
 
-	rect[0] = { posX - range, posY - INTERACTION_RANGE };
-	rect[1] = { posX - range, posY };
-	rect[2] = { posX + range, posY };
-	rect[3] = { posX + range, posY - INTERACTION_RANGE };
+	rect[0] = { posX - range, posY - INTERACTION_RANGE + 0.2};
+	rect[1] = { posX - range, posY + 0.2 };
+	rect[2] = { posX + range, posY + 0.2 };
+	rect[3] = { posX + range, posY - INTERACTION_RANGE + 0.2};
 
 	RotateRectangle(rect, 4, obj->Rotation, posX, posY);
 
@@ -810,6 +811,7 @@ void GameThread::processMovePacket(Player* target, NetworkLib::Message* message)
 
 	target->TileX = x * 2;
 	target->TileY = y * 2;
+	target->Rotation = rotation;
 
 	int sectorX = target->TileX / TILES_PER_SECTOR;
 	int sectorY = target->TileY / TILES_PER_SECTOR;
@@ -866,6 +868,7 @@ void GameThread::processMoveStopPacket(Player* target, NetworkLib::Message* mess
 
 	target->TileX = x * 2;
 	target->TileY = y * 2;
+	target->Rotation = rotation;
 
 	int sectorX = target->TileX / TILES_PER_SECTOR;
 	int sectorY = target->TileY / TILES_PER_SECTOR;
@@ -933,6 +936,7 @@ void GameThread::processAttackPacket(Player* target, NetworkLib::Message* messag
 		int monSectorX = monster->TileX / TILES_PER_SECTOR;
 		int monSectorY = monster->TileY / TILES_PER_SECTOR;
 
+		
 		monster->HP -= damage;
 
 		NetworkLib::Message* resDamage = AllocMessage();
@@ -1028,6 +1032,9 @@ void GameThread::processPickPacket(Player* target, NetworkLib::Message* message)
 	{
 		Cristal* cristal = (Cristal*)obj;
 
+		Logger::AppendLine(L"Player[X: %f, Y: %f, ROT: %d] Pick Cristal[X: %f, Y:%f]", target->PosX, target->PosY, target->Rotation, cristal->PosX, cristal->PosY);;
+		Logger::Log(LOG_FILE_NAME);
+
 		target->Cristal += cristal->Amount;
 
 		int cristalX = cristal->TileX / TILES_PER_SECTOR;
@@ -1117,10 +1124,15 @@ void GameThread::moveMonster(Monster* monster, float toX, float toY)
 	int monSectorX = monster->TileX / TILES_PER_SECTOR;
 	int monSectorY = monster->TileY / TILES_PER_SECTOR;
 
-	double dx = toX - monPosX;
-	double dy = toY - monPosY;
+	double dx = toX - monPosX + 1.0;
+	double dy = toY - monPosY + 1.0;
 	double radians = atan2(dy, dx);
-	double degrees = radians * (180.0 / PI) - 90;
+	double degrees = radians * 180.0 / PI;
+
+	if (toX < monPosX)
+	{
+		degrees += 180 - degrees;
+	}
 
 	if (degrees < 0)
 	{
@@ -1141,8 +1153,23 @@ void GameThread::moveMonster(Monster* monster, float toX, float toY)
 	double unitX = x / magnitude;
 	double unitY = y / magnitude;
 
-	monster->PosX += unitX;
-	monster->PosY += unitY;
+	if (abs(monPosX - toX) < abs(unitX))
+	{
+		monster->PosX = toX;
+	}
+	else
+	{
+		monster->PosX += unitX;
+	}
+
+	if (abs(monPosY - toY) < abs(unitY))
+	{
+		monster->PosY = toY;
+	}
+	else
+	{
+		monster->PosY += unitY;
+	}
 
 	monster->TileX = monster->PosX * 2;
 	monster->TileY = monster->PosY * 2;

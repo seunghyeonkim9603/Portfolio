@@ -1,49 +1,60 @@
 #include "stdafx.h"
 
 
-// 직사각형을 회전시키는 함수
+Point vect2d(Point p1, Point p2)
+{
+    Point temp;
+    temp.x = (p2.x - p1.x);
+    temp.y = -1 * (p2.y - p1.y);
+    return temp;
+}
+
+bool IsPointInRectangle(Point A, Point B, Point C, Point D, Point m)
+{
+    Point AB = vect2d(A, B);
+    float C1 = -1 * (AB.y * A.x + AB.x * A.y);
+    float  D1 = (AB.y * m.x + AB.x * m.y) + C1;
+    Point AD = vect2d(A, D);
+    float C2 = -1 * (AD.y * A.x + AD.x * A.y);
+    float D2 = (AD.y * m.x + AD.x * m.y) + C2;
+    Point BC = vect2d(B, C);
+    float C3 = -1 * (BC.y * B.x + BC.x * B.y);
+    float D3 = (BC.y * m.x + BC.x * m.y) + C3;
+    Point CD = vect2d(C, D);
+    float C4 = -1 * (CD.y * C.x + CD.x * C.y);
+    float D4 = (CD.y * m.x + CD.x * m.y) + C4;
+
+    return     0 >= D1 && 0 >= D4 && 0 <= D2 && 0 >= D3;
+}
+
+void rotate(Point* p, double radian)
+{
+    double x = p->x;
+    double y = p->y;
+
+    p->x = x * cos(radian) - y * sin(radian);
+    p->y = x * sin(radian) + y * cos(radian);
+}
+
 void RotateRectangle(Point p[], int n, double rotation, double cx, double cy)
 {
-    double theta = (rotation + 90) * (double)(PI / 180);
-    double sinTheta = sin(theta);
-    double cosTheta = cos(theta);
+    double radian = (180 - rotation) * PI / 180.0;
 
-    // 회전변환 행렬을 계산
-    double rotMatrix[2][2] = {
-        {cosTheta, -sinTheta},
-        {sinTheta, cosTheta}
-    };
+    for (int i = 0; i < n; ++i)
+    {
+        Point temp;
 
-    // 직사각형의 각 점을 회전
-    for (int i = 0; i < n; i++) {
-        // 회전 중심으로 이동
-        double tx = p[i].x - cx;
-        double ty = p[i].y - cy;
+        temp.x = p[i].x - cx;
+        temp.y = p[i].y - cy;
 
-        // 회전변환
-        p[i].x = rotMatrix[0][0] * tx + rotMatrix[0][1] * ty;
-        p[i].y = rotMatrix[1][0] * tx + rotMatrix[1][1] * ty;
+        rotate(&temp, radian);
 
-        // 회전 중심으로 이동
-        p[i].x += cx;
-        p[i].y += cy;
+        p[i].x = cx + temp.x;
+        p[i].y = cy + temp.y;
     }
 }
 
 bool IsPointInPolygon(Point polygon[], int n, Point q)
 {
-    int i = 0;
-    int j = 0;
-    bool bIsContains = false;
-
-    for (i = 0, j = n - 1; i < n; j = i++)
-    {
-        if ((((polygon[i].y <= q.y) && (q.y < polygon[j].y)) ||
-            ((polygon[j].y <= q.y) && (q.y < polygon[i].y))) &&
-            (q.x < (polygon[j].x - polygon[i].x) * (q.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x))
-        {
-            bIsContains = !bIsContains;
-        }
-    }
-    return bIsContains;
+    return IsPointInRectangle(polygon[0], polygon[1], polygon[2], polygon[3], q);
 }
