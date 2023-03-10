@@ -34,8 +34,6 @@ int main(void)
 	int cpuUsage;
 	int privateBytes;
 
-	//DBWriterThread
-
 	DBWriterThread logDBWriter("127.0.0.1", "root", "123456", "logdb", 3306);
 	DBWriterThread gameDBWriter("127.0.0.1", "root", "123456", "gamedb", 3306);
 	{
@@ -43,18 +41,15 @@ int main(void)
 		gameDBWriter.TryRun();
 	}
 
-	// WANServer, LANServer »ý¼º
 	NetworkLib::WANServer* wanServer = new NetworkLib::WANServer();
 	NetworkLib::LANClient* lanClient = new NetworkLib::LANClient();
 
 	GameServer gameServer(wanServer);
 
 	LoginThread* loginThread = new LoginThread(wanServer, &gameDBWriter, &logDBWriter);
-	SelectCharacterThread* characterThread = new SelectCharacterThread(wanServer, &gameDBWriter, &logDBWriter);
 	GameThread* gameThread = new GameThread(wanServer, &gameDBWriter, &logDBWriter);
 
 	wanServer->RegisterContentThread(loginThread);
-	wanServer->RegisterContentThread(characterThread);
 	wanServer->RegisterContentThread(gameThread);
 
 	MonitoringClient monitor(lanClient, SERVER_NO);
@@ -109,7 +104,6 @@ int main(void)
 		std::cout << "Session Count : " << wanServer->GetCurrentSessionCount() << std::endl;
 		std::cout << "Login Thread Player Count : " << loginThread->GetNumPlayer() << std::endl;
 		std::cout << "Game Thread Player Count : " << gameThread->GetNumPlayer() << std::endl;
-		std::cout << "Select Thread Player Count : " << characterThread->GetNumPlayer() << std::endl;
 		std::cout << "Game Thread FPS : " << gameThread->GetFPS() << std::endl;
 		std::cout << "Total Login Count : " << loginThread->GetNumLoginSucceed() << std::endl;
 

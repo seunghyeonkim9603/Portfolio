@@ -141,7 +141,7 @@
     <ClCompile Include="ClientIDGenerator.cpp" />
     <ClCompile Include="DBConnector.cpp" />
     <ClCompile Include="DBWriterThread.cpp" />
-    <ClCompile Include="GameServer.cpp" />
+    <ClCompile Include="NetEventListener.cpp" />
     <ClCompile Include="GameThread.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LoginThread.cpp" />
@@ -152,7 +152,6 @@
     <ClCompile Include="ProcessDataHelper.cpp" />
     <ClCompile Include="ProcessTaskManager.cpp" />
     <ClCompile Include="Sector.cpp" />
-    <ClCompile Include="SelectCharacterThread.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
@@ -168,7 +167,7 @@
     <ClInclude Include="EContentType.h" />
     <ClInclude Include="EObjectStatus.h" />
     <ClInclude Include="EObjectType.h" />
-    <ClInclude Include="GameServer.h" />
+    <ClInclude Include="NetEventListener.h" />
     <ClInclude Include="GameThread.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LoginThread.h" />
@@ -180,7 +179,6 @@
     <ClInclude Include="ProcessDataHelper.h" />
     <ClInclude Include="ProcessTaskManager.h" />
     <ClInclude Include="Sector.h" />
-    <ClInclude Include="SelectCharacterThread.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

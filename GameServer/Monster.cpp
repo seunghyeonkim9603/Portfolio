@@ -13,10 +13,10 @@ void InitMonster(Monster* monster, int HP, int AP, int centerTileX, int centerTi
 
 	QueryPerformanceCounter(&monster->LastActionTime);
 
-	InitMonsterPos(monster);
+	InitRespawnMonster(monster);
 }
 
-void InitMonsterPos(Monster* monster)
+void InitRespawnMonster(Monster* monster)
 {
 	int range = monster->MoveRange / 2;
 

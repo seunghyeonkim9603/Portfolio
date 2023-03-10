@@ -41,7 +41,7 @@
 #include "EObjectType.h"
 #include "EObjectStatus.h"
 
-#include "GameServer.h"
+#include "NetEventListener.h"
 #include "ClientIDGenerator.h"
 
 #include "Point.h"
@@ -52,5 +52,4 @@
 #include "Sector.h"
 
 #include "LoginThread.h"
-#include "SelectCharacterThread.h"
 #include "GameThread.h"

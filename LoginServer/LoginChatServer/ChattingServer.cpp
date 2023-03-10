@@ -71,7 +71,6 @@ ChattingServer::ChattingServer(NetworkLib::WANServer* server)
 
 ChattingServer::~ChattingServer()
 {
-	// 플레이어 삭제, 메시지 큐 비우기
 	mNetServer->Terminate();
 
 	gExit = true;
@@ -430,9 +429,6 @@ unsigned int __stdcall ChattingServer::redisThread(void* param)
 		INT64 accountNo;
 
 		*contentMessage->Payload >> accountNo;
-		//contentMessage->Payload->Read(sessionKeyBuff, SESSION_KEY_LENGTH);
-
-		//sessionKeyBuff[SESSION_KEY_LENGTH] = '\0';
 
 		sprintf_s(accountNoBuff, "%lld", accountNo);
 

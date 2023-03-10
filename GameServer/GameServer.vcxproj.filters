@@ -66,10 +66,7 @@
     <ClCompile Include="Sector.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="SelectCharacterThread.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="GameServer.cpp">
+    <ClCompile Include="NetEventListener.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Monster.cpp">
@@ -107,7 +104,7 @@
     <ClInclude Include="GameThread.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="GameServer.h">
+    <ClInclude Include="NetEventListener.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="ClientIDGenerator.h">
@@ -147,9 +144,6 @@
       <Filter>PCH</Filter>
     </ClInclude>
     <ClInclude Include="Sector.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SelectCharacterThread.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Point.h">

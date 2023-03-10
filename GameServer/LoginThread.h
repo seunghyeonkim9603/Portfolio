@@ -22,7 +22,8 @@ private:
 	enum
 	{
 		THREAD_FPS = 60,
-		SESSION_KEY_LENGTH = 64
+		SESSION_KEY_LENGTH = 64,
+		ACCOUNT_NO_BUF_LENGTH = 64
 	};
 
 	NetworkLib::TLSObjectPool<Player> mPlayerPool;

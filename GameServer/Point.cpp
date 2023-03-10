@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 
-Point vect2d(Point p1, Point p2)
+static Point vect2d(Point p1, Point p2)
 {
     Point temp;
     temp.x = (p2.x - p1.x);
@@ -9,7 +9,7 @@ Point vect2d(Point p1, Point p2)
     return temp;
 }
 
-bool IsPointInRectangle(Point A, Point B, Point C, Point D, Point m)
+static bool isPointInRectangle(Point A, Point B, Point C, Point D, Point m)
 {
     Point AB = vect2d(A, B);
     float C1 = -1 * (AB.y * A.x + AB.x * A.y);
@@ -27,7 +27,7 @@ bool IsPointInRectangle(Point A, Point B, Point C, Point D, Point m)
     return     0 >= D1 && 0 >= D4 && 0 <= D2 && 0 >= D3;
 }
 
-void rotate(Point* p, double radian)
+static void rotate(Point* p, double radian)
 {
     double x = p->x;
     double y = p->y;
@@ -36,7 +36,7 @@ void rotate(Point* p, double radian)
     p->y = x * sin(radian) + y * cos(radian);
 }
 
-void RotateRectangle(Point p[], int n, double rotation, double cx, double cy)
+void RotateRectangle(Point p[], const double rotation, const double cx, const double cy)
 {
     double radian = (180 - rotation) * PI / 180.0;
 
@@ -54,7 +54,7 @@ void RotateRectangle(Point p[], int n, double rotation, double cx, double cy)
     }
 }
 
-bool IsPointInPolygon(Point polygon[], int n, Point q)
+bool IsPointInRectangle(Point polygon[], Point q)
 {
-    return IsPointInRectangle(polygon[0], polygon[1], polygon[2], polygon[3], q);
+    return isPointInRectangle(polygon[0], polygon[1], polygon[2], polygon[3], q);
 }

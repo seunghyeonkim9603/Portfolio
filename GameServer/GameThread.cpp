@@ -3,7 +3,7 @@
 #define INTERACTION_RANGE (1.0f)
 #define LOG_FILE_NAME (L"GameThreadLog.txt")
 
-LARGE_INTEGER freq;
+LARGE_INTEGER gFreq;
 
 GameThread::GameThread(NetworkLib::WANServer* wanServer, DBWriterThread* gameDB, DBWriterThread* logDB)
 	: ContentThread(wanServer, EContentType::CONTENT_TYPE_GAME, THREAD_FPS),
@@ -62,7 +62,7 @@ GameThread::~GameThread()
 
 void GameThread::OnThreadStart()
 {
-	QueryPerformanceFrequency(&freq);
+	QueryPerformanceFrequency(&gFreq);
 
 	for (unsigned int i = 0; i < MONSTERS_PER_AREA; ++i)
 	{
@@ -140,7 +140,7 @@ void GameThread::OnUpdate()
 		int monSectorX = monster->TileX / TILES_PER_SECTOR;
 		int monSectorY = monster->TileY / TILES_PER_SECTOR;
 
-		if (cur.QuadPart - monster->LastActionTime.QuadPart < freq.QuadPart)
+		if (cur.QuadPart - monster->LastActionTime.QuadPart < gFreq.QuadPart)
 		{
 			continue;
 		}
@@ -186,11 +186,11 @@ void GameThread::OnUpdate()
 				rect[2] = { monPosX + range, monPosY + 0.2};
 				rect[3] = { monPosX + range, monPosY - INTERACTION_RANGE + 0.2};
 
-				RotateRectangle(rect, 4, monster->Rotation, monPosX, monPosY);
+				RotateRectangle(rect, monster->Rotation, monPosX, monPosY);
 
-				if (IsPointInPolygon(rect, 4, {targetPosX, targetPosY}))
+				if (IsPointInRectangle(rect, {targetPosX, targetPosY}))
 				{
-					OnMonsterAttack(monster, target);
+					onMonsterAttack(monster, target);
 				}
 				else
 				{
@@ -208,12 +208,12 @@ void GameThread::OnUpdate()
 		}
 		Monster* deadMonster = mDeadMonsters.front();
 
-		if (cur.QuadPart - deadMonster->DeadTime.QuadPart < freq.QuadPart * MONSTER_RESPAWN_TIME_SEC)
+		if (cur.QuadPart - deadMonster->DeadTime.QuadPart < gFreq.QuadPart * MONSTER_RESPAWN_TIME_SEC)
 		{
 			break;
 		}
 		deadMonster->Target = nullptr;
-		InitMonsterPos(deadMonster);
+		InitRespawnMonster(deadMonster);
 
 		int sectorX = deadMonster->TileX / TILES_PER_SECTOR;
 		int sectorY = deadMonster->TileY / TILES_PER_SECTOR;
@@ -222,11 +222,11 @@ void GameThread::OnUpdate()
 		const std::vector<Sector*>* adjSectors = sector->GetAdjSectors();
 
 		sector->InsertObject(deadMonster);
-		OnSectorJoin(deadMonster, sector, true);
+		onSectorJoin(deadMonster, sector, true);
 
 		for (Sector* adj : *adjSectors)
 		{
-			OnSectorJoin(deadMonster, adj, true);
+			onSectorJoin(deadMonster, adj, true);
 		}
 		mMonsters.insert({ deadMonster->ClientID, deadMonster });
 
@@ -240,7 +240,8 @@ void GameThread::OnClientThreadJoin(sessionID_t id, void* transffered)
 
 	Logger::AppendLine(L"Rot : %d", joined->Rotation);
 	Logger::Log(LOG_FILE_NAME);
-	OnPlayerSpawn(joined);
+
+	onPlayerSpawn(joined);
 	mPlayers.insert({ id, joined });
 
 	++mNumPlayer;
@@ -260,11 +261,11 @@ void GameThread::OnClientThreadLeave(sessionID_t id)
 	sector->RemoveObject(leaved->ClientID);
 	mPlayers.erase(id);
 
-	OnSectorLeave(leaved, sector);
+	onSectorLeave(leaved, sector);
 
 	for (Sector* adj : *adjSectors)
 	{
-		OnSectorLeave(leaved, adj);
+		onSectorLeave(leaved, adj);
 	}
 	--mNumPlayer;
 }
@@ -283,11 +284,11 @@ void GameThread::OnClientDisconnect(sessionID_t id)
 	sector->RemoveObject(leaved->ClientID);
 	mPlayers.erase(id);
 
-	OnSectorLeave(leaved, sector);
+	onSectorLeave(leaved, sector);
 
 	for (Sector* adj : *adjSectors)
 	{
-		OnSectorLeave(leaved, adj);
+		onSectorLeave(leaved, adj);
 	}
 	mLogDBWriter->Write("INSERT INTO `logdb`.`gamelog`(type, code, accountno, servername, param1, param2, param3, param4) VALUES(1, 12, %lld, \"game\", %d, %d, %d, %d)",
 		leaved->AccountNo, leaved->TileX, leaved->TileY, leaved->Cristal, leaved->HP);
@@ -340,7 +341,7 @@ void GameThread::OnRecv(sessionID_t id, NetworkLib::Message* message)
 	}
 }
 
-void GameThread::SendSector(Sector& sector, NetworkLib::Message* message, sessionID_t excepted)
+void GameThread::sendSector(Sector& sector, NetworkLib::Message* message, sessionID_t excepted)
 {
 	auto hashMap = sector.GetObjects();
 
@@ -360,20 +361,20 @@ void GameThread::SendSector(Sector& sector, NetworkLib::Message* message, sessio
 	}
 }
 
-void GameThread::SendAroundSector(int x, int y, NetworkLib::Message* message, sessionID_t excepted)
+void GameThread::sendAroundSector(int x, int y, NetworkLib::Message* message, sessionID_t excepted)
 {
 	Sector* sector = &mSectors[y][x];
 	auto adjVector = sector->GetAdjSectors();
 
-	SendSector(*sector, message, excepted);
+	sendSector(*sector, message, excepted);
 
 	for (Sector* adj : *adjVector)
 	{
-		SendSector(*adj, message, excepted);
+		sendSector(*adj, message, excepted);
 	}
 }
 
-void GameThread::OnPlayerSpawn(Player* player)
+void GameThread::onPlayerSpawn(Player* player)
 {
 	Player* joined = player;
 
@@ -402,16 +403,16 @@ void GameThread::OnPlayerSpawn(Player* player)
 	}
 	ReleaseMessage(sendMessage);
 
-	OnSectorJoin(joined, sector, true);
+	onSectorJoin(joined, sector, true);
 
 	for (Sector* adj : *adjSectors)
 	{
-		OnSectorJoin(joined, adj, true);
+		onSectorJoin(joined, adj, true);
 	}
 	sector->InsertObject(joined);
 }
 
-void GameThread::OnSectorMove(Object* obj, int fromX, int fromY, int toX, int toY)
+void GameThread::onSectorMove(Object* obj, int fromX, int fromY, int toX, int toY)
 {
 	Sector* fromSector = &mSectors[fromY][fromX];
 	Sector* toSector = &mSectors[toY][toX];
@@ -423,19 +424,19 @@ void GameThread::OnSectorMove(Object* obj, int fromX, int fromY, int toX, int to
 	{
 		if (1 < abs(fromAdj->GetX() - toX) || 1 < abs(fromAdj->GetY() - toY))
 		{
-			OnSectorLeave(obj, fromAdj);
+			onSectorLeave(obj, fromAdj);
 		}
 	}
 	for (Sector* toAdj : *toAdjSectors)
 	{
 		if (1 < abs(toAdj->GetX() - fromX) || 1 < abs(toAdj->GetY() - fromY))
 		{
-			OnSectorJoin(obj, toAdj, false);
+			onSectorJoin(obj, toAdj, false);
 		}
 	}
 }
 
-void GameThread::OnSectorJoin(Object* joined, Sector* sector, bool bIsRespawn)
+void GameThread::onSectorJoin(Object* joined, Sector* sector, bool bIsRespawn)
 {
 	const std::unordered_map<INT64, Object*>* objs = sector->GetObjects();
 
@@ -550,7 +551,7 @@ void GameThread::OnSectorJoin(Object* joined, Sector* sector, bool bIsRespawn)
 	ReleaseMessage(otherSendMessage);
 }
 
-void GameThread::OnSectorLeave(Object* obj, Sector* sector)
+void GameThread::onSectorLeave(Object* obj, Sector* sector)
 {
 	const std::unordered_map<INT64, Object*>* objs = sector->GetObjects();
 
@@ -604,7 +605,7 @@ void GameThread::OnSectorLeave(Object* obj, Sector* sector)
 	ReleaseMessage(otherSendMessage);
 }
 
-void GameThread::OnSit(Player* player)
+void GameThread::onSit(Player* player)
 {
 	player->bIsSit = true;
 	mSitPlayers.push_back(player);
@@ -616,12 +617,12 @@ void GameThread::OnSit(Player* player)
 		*sitRes << (WORD)en_PACKET_CS_GAME_RES_SIT;
 		*sitRes << player->ClientID;
 
-		SendAroundSector(player->TileX / TILES_PER_SECTOR, player->TileY / TILES_PER_SECTOR, sitRes, player->SessionID);
+		sendAroundSector(player->TileX / TILES_PER_SECTOR, player->TileY / TILES_PER_SECTOR, sitRes, player->SessionID);
 	}
 	ReleaseMessage(sitRes);
 }
 
-void GameThread::OnStand(Player* player)
+void GameThread::onStand(Player* player)
 {
 	LARGE_INTEGER cur;
 
@@ -630,7 +631,7 @@ void GameThread::OnStand(Player* player)
 	player->bIsSit = false;
 
 	int oldHp = player->HP;
-	int elapsedSec = (cur.QuadPart - player->SitBeginTime.QuadPart) / freq.QuadPart;
+	int elapsedSec = (cur.QuadPart - player->SitBeginTime.QuadPart) / gFreq.QuadPart;
 
 	player->HP += elapsedSec * 100;
 
@@ -647,7 +648,7 @@ void GameThread::OnStand(Player* player)
 		player->AccountNo, oldHp, player->HP, elapsedSec);
 }
 
-void GameThread::OnMonsterAttack(Monster* monster, Player* target)
+void GameThread::onMonsterAttack(Monster* monster, Player* target)
 {
 	int monSectorX = monster->TileX / TILES_PER_SECTOR;
 	int monSectorY = monster->TileY / TILES_PER_SECTOR;
@@ -669,7 +670,7 @@ void GameThread::OnMonsterAttack(Monster* monster, Player* target)
 		*resMonAttack << (WORD)en_PACKET_CS_GAME_RES_MONSTER_ATTACK;
 		*resMonAttack << monster->ClientID;
 
-		SendAroundSector(monSectorX, monSectorY, resMonAttack, 0);
+		sendAroundSector(monSectorX, monSectorY, resMonAttack, 0);
 	}
 	ReleaseMessage(resMonAttack);
 
@@ -680,7 +681,7 @@ void GameThread::OnMonsterAttack(Monster* monster, Player* target)
 		*resDamage << target->ClientID;
 		*resDamage << 100;
 
-		SendAroundSector(targetSectorX, targetSectorY, resDamage, 0);
+		sendAroundSector(targetSectorX, targetSectorY, resDamage, 0);
 	}
 	ReleaseMessage(resDamage);
 
@@ -695,7 +696,7 @@ void GameThread::OnMonsterAttack(Monster* monster, Player* target)
 			*resPlayerDie << target->ClientID;
 			*resPlayerDie << 10;
 
-			SendAroundSector(targetSectorX, targetSectorY, resPlayerDie, 0);
+			sendAroundSector(targetSectorX, targetSectorY, resPlayerDie, 0);
 		}
 		ReleaseMessage(resPlayerDie);
 
@@ -704,7 +705,7 @@ void GameThread::OnMonsterAttack(Monster* monster, Player* target)
 	}
 }
 
-void GameThread::GetObjectsInInteractionRange(Object* obj, std::vector<Object*>* outObjects, EObjectType targetType)
+void GameThread::getObjectsInInteractionRange(Object* obj, std::vector<Object*>* outObjects, EObjectType targetType)
 {
 	Point rect[4];
 
@@ -717,7 +718,7 @@ void GameThread::GetObjectsInInteractionRange(Object* obj, std::vector<Object*>*
 	rect[2] = { posX + range, posY + 0.2 };
 	rect[3] = { posX + range, posY - INTERACTION_RANGE + 0.2};
 
-	RotateRectangle(rect, 4, obj->Rotation, posX, posY);
+	RotateRectangle(rect, obj->Rotation, posX, posY);
 
 	int left = INT_MAX;
 	int right = INT_MIN;
@@ -770,7 +771,7 @@ void GameThread::GetObjectsInInteractionRange(Object* obj, std::vector<Object*>*
 		{
 			Object* other = iter.second;
 
-			if (other->ClientID != obj->ClientID && other->ObjectType == targetType && IsPointInPolygon(rect, 4, { other->PosX, other->PosY }))
+			if (other->ClientID != obj->ClientID && other->ObjectType == targetType && IsPointInRectangle(rect, { other->PosX, other->PosY }))
 			{
 				outObjects->push_back(other);
 			}
@@ -791,7 +792,7 @@ void GameThread::processMovePacket(Player* target, NetworkLib::Message* message)
 	}
 	if (target->bIsSit)
 	{
-		OnStand(target);
+		onStand(target);
 	}
 
 	INT64 clientId;
@@ -824,7 +825,7 @@ void GameThread::processMovePacket(Player* target, NetworkLib::Message* message)
 		beforeSector->RemoveObject(clientId);
 		currentSector->InsertObject(target);
 
-		OnSectorMove(target, sectorXBefore, sectorYBefore, sectorX, sectorY);
+		onSectorMove(target, sectorXBefore, sectorYBefore, sectorX, sectorY);
 	}
 
 	NetworkLib::Message* sectorMoveRes = AllocMessage();
@@ -837,7 +838,7 @@ void GameThread::processMovePacket(Player* target, NetworkLib::Message* message)
 		*sectorMoveRes << vKey;
 		*sectorMoveRes << hKey;
 
-		SendAroundSector(sectorX, sectorY, sectorMoveRes, target->SessionID);
+		sendAroundSector(sectorX, sectorY, sectorMoveRes, target->SessionID);
 	}
 	ReleaseMessage(sectorMoveRes);
 }
@@ -850,7 +851,7 @@ void GameThread::processMoveStopPacket(Player* target, NetworkLib::Message* mess
 	}
 	if (target->bIsSit)
 	{
-		OnStand(target);
+		onStand(target);
 	}
 
 	INT64 clientId;
@@ -881,7 +882,7 @@ void GameThread::processMoveStopPacket(Player* target, NetworkLib::Message* mess
 		beforeSector->RemoveObject(clientId);
 		currentSector->InsertObject(target);
 
-		OnSectorMove(target, sectorXBefore, sectorYBefore, sectorX, sectorY);
+		onSectorMove(target, sectorXBefore, sectorYBefore, sectorX, sectorY);
 	}
 
 	NetworkLib::Message* sectorMoveStopRes = AllocMessage();
@@ -892,7 +893,7 @@ void GameThread::processMoveStopPacket(Player* target, NetworkLib::Message* mess
 		*sectorMoveStopRes << y;
 		*sectorMoveStopRes << rotation;
 
-		SendAroundSector(sectorX, sectorY, sectorMoveStopRes, target->SessionID);
+		sendAroundSector(sectorX, sectorY, sectorMoveStopRes, target->SessionID);
 	}
 	ReleaseMessage(sectorMoveStopRes);
 }
@@ -905,7 +906,7 @@ void GameThread::processAttackPacket(Player* target, NetworkLib::Message* messag
 	}
 	if (target->bIsSit)
 	{
-		OnStand(target);
+		onStand(target);
 	}
 	std::vector<Object*> objects;
 
@@ -921,11 +922,11 @@ void GameThread::processAttackPacket(Player* target, NetworkLib::Message* messag
 	int sectorX = target->TileX / TILES_PER_SECTOR;
 	int sectorY = target->TileY / TILES_PER_SECTOR;
 
-	SendAroundSector(sectorX, sectorY, resAttack, target->SessionID);
+	sendAroundSector(sectorX, sectorY, resAttack, target->SessionID);
 
 	ReleaseMessage(resAttack);
 
-	GetObjectsInInteractionRange(target, &objects, EObjectType::OBJECT_TYPE_MONSTER);
+	getObjectsInInteractionRange(target, &objects, EObjectType::OBJECT_TYPE_MONSTER);
 
 	for (Object* obj : objects)
 	{
@@ -946,7 +947,7 @@ void GameThread::processAttackPacket(Player* target, NetworkLib::Message* messag
 			*resDamage << monster->ClientID;
 			*resDamage << (int)damage;
 
-			SendAroundSector(monSectorX, monSectorY, resDamage, 0);
+			sendAroundSector(monSectorX, monSectorY, resDamage, 0);
 		}
 		ReleaseMessage(resDamage);
 
@@ -971,7 +972,7 @@ void GameThread::processAttackPacket(Player* target, NetworkLib::Message* messag
 				*resMonsterDie << (WORD)en_PACKET_CS_GAME_RES_MONSTER_DIE;
 				*resMonsterDie << monster->ClientID;
 
-				SendAroundSector(monSectorX, monSectorY, resMonsterDie, 0);
+				sendAroundSector(monSectorX, monSectorY, resMonsterDie, 0);
 			}
 			ReleaseMessage(resMonsterDie);
 
@@ -983,7 +984,7 @@ void GameThread::processAttackPacket(Player* target, NetworkLib::Message* messag
 				*resCreateCristal << cristal->PosX;
 				*resCreateCristal << cristal->PosY;
 
-				SendAroundSector(monSectorX, monSectorY, resCreateCristal, 0);
+				sendAroundSector(monSectorX, monSectorY, resCreateCristal, 0);
 			}
 			ReleaseMessage(resCreateCristal);
 
@@ -1007,7 +1008,7 @@ void GameThread::processPickPacket(Player* target, NetworkLib::Message* message)
 	}
 	if (target->bIsSit)
 	{
-		OnStand(target);
+		onStand(target);
 	}
 	std::vector<Object*> objects;
 	INT64 clientID;
@@ -1022,11 +1023,11 @@ void GameThread::processPickPacket(Player* target, NetworkLib::Message* message)
 	int sectorX = target->TileX / TILES_PER_SECTOR;
 	int sectorY = target->TileY / TILES_PER_SECTOR;
 
-	SendAroundSector(sectorX, sectorY, resPick, target->SessionID);
+	sendAroundSector(sectorX, sectorY, resPick, target->SessionID);
 
 	ReleaseMessage(resPick);
 
-	GetObjectsInInteractionRange(target, &objects, EObjectType::OBJECT_TYPE_CRISTAL);
+	getObjectsInInteractionRange(target, &objects, EObjectType::OBJECT_TYPE_CRISTAL);
 
 	for (Object* obj : objects)
 	{
@@ -1049,7 +1050,7 @@ void GameThread::processPickPacket(Player* target, NetworkLib::Message* message)
 		*resCristal << cristal->ClientID;
 		*resCristal << target->Cristal;
 
-		SendAroundSector(sectorX, sectorY, resCristal, 0);
+		sendAroundSector(sectorX, sectorY, resCristal, 0);
 
 		ReleaseMessage(resCristal);
 
@@ -1066,7 +1067,7 @@ void GameThread::processSitPacket(Player* target, NetworkLib::Message* message)
 	{
 		return;
 	}
-	OnSit(target);
+	onSit(target);
 }
 
 void GameThread::processRestartPacket(Player* target, NetworkLib::Message* message)
@@ -1085,7 +1086,7 @@ void GameThread::processRestartPacket(Player* target, NetworkLib::Message* messa
 		*resRemoveObj << (WORD)en_PACKET_CS_GAME_RES_REMOVE_OBJECT;
 		*resRemoveObj << target->ClientID;
 
-		SendAroundSector(sectorX, sectorY, resRemoveObj, target->SessionID);
+		sendAroundSector(sectorX, sectorY, resRemoveObj, target->SessionID);
 	}
 	ReleaseMessage(resRemoveObj);
 
@@ -1108,7 +1109,7 @@ void GameThread::processRestartPacket(Player* target, NetworkLib::Message* messa
 	target->bIsSit = false;
 	target->bIsDie = false;
 
-	OnPlayerSpawn(target);
+	onPlayerSpawn(target);
 
 	mLogDBWriter->Write("INSERT INTO `logdb`.`gamelog`(type, code, accountno, servername, param1, param2) VALUES(`3`, `33`, `%lld`, \"game\", %d, %d)",
 		target->AccountNo, target->TileX, target->TileY);
@@ -1185,7 +1186,7 @@ void GameThread::moveMonster(Monster* monster, float toX, float toY)
 		*resMonMove << monster->PosY;
 		*resMonMove << monster->Rotation;
 
-		SendAroundSector(monSectorX, monSectorY, resMonMove, 0);
+		sendAroundSector(monSectorX, monSectorY, resMonMove, 0);
 	}
 	ReleaseMessage(resMonMove);
 
@@ -1197,6 +1198,6 @@ void GameThread::moveMonster(Monster* monster, float toX, float toY)
 		beforeSector->RemoveObject(monster->ClientID);
 		currentSector->InsertObject(monster);
 
-		OnSectorMove(monster, monSectorX, monSectorY, toSectorX, toSectorY);
+		onSectorMove(monster, monSectorX, monSectorY, toSectorX, toSectorY);
 	}
 }

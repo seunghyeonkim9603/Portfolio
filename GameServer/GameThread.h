@@ -14,20 +14,22 @@ public:
 	virtual void OnClientDisconnect(sessionID_t id) override;
 	virtual void OnRecv(sessionID_t id, NetworkLib::Message* message) override;
 
-	void SendSector(Sector& sector, NetworkLib::Message* message, sessionID_t excepted);
-	void SendAroundSector(int x, int y, NetworkLib::Message* message, sessionID_t excepted);
-
-	void OnPlayerSpawn(Player* player);
-	void OnSectorMove(Object* obj, int fromX, int fromY, int toX, int toY);
-	void OnSectorJoin(Object* obj, Sector* sector, bool bIsRespawn);
-	void OnSectorLeave(Object* obj, Sector* sector);
-	void OnSit(Player* player);
-	void OnStand(Player* player);
-	void OnMonsterAttack(Monster* monster, Player* target);
-	void GetObjectsInInteractionRange(Object* obj, std::vector<Object*>* outObjects, EObjectType targetType);
-
 	unsigned int GetNumPlayer() const;
+
 private:
+
+	void sendSector(Sector& sector, NetworkLib::Message* message, sessionID_t excepted);
+	void sendAroundSector(int x, int y, NetworkLib::Message* message, sessionID_t excepted);
+
+	void onPlayerSpawn(Player* player);
+	void onSectorMove(Object* obj, int fromX, int fromY, int toX, int toY);
+	void onSectorJoin(Object* obj, Sector* sector, bool bIsRespawn);
+	void onSectorLeave(Object* obj, Sector* sector);
+	void onSit(Player* player);
+	void onStand(Player* player);
+	void onMonsterAttack(Monster* monster, Player* target);
+	void getObjectsInInteractionRange(Object* obj, std::vector<Object*>* outObjects, EObjectType targetType);
+
 	void processMovePacket(Player* target, NetworkLib::Message* message);
 	void processMoveStopPacket(Player* target, NetworkLib::Message* message);
 	void processAttackPacket(Player* target, NetworkLib::Message* message, int damage, WORD type);
@@ -35,6 +37,7 @@ private:
 	void processSitPacket(Player* target, NetworkLib::Message* message);
 	void processRestartPacket(Player* target, NetworkLib::Message* message);
 	void moveMonster(Monster* monster, float toX, float toY);
+
 private:
 	enum
 	{
@@ -47,6 +50,7 @@ private:
 		MONSTERS_PER_AREA = 10,
 		MONSTER_RESPAWN_TIME_SEC = 5
 	};
+
 	NetworkLib::TLSObjectPool<Player> mPlayerPool;
 	NetworkLib::ObjectPool<Monster> mMonsterPool;
 	NetworkLib::ObjectPool<Cristal> mCristalPool;
