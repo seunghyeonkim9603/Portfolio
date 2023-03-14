@@ -17,6 +17,8 @@
 #include "CommonProtocol.h"
 #include "LoginServer.h"
 
+bool gExit = false;
+
 #define LOG_FILE_NAME (L"LoginServerLog.txt")
 
 thread_local DBConnector LoginServer::DbConnector;
@@ -35,6 +37,17 @@ LoginServer::LoginServer(NetworkLib::WANServer* server, const WCHAR* gameServerI
 
 LoginServer::~LoginServer()
 {
+	gExit = true;
+
+	WaitForSingleObject(mhDisconnectThread, INFINITE);
+	CloseHandle(mhDisconnectThread);
+
+	for (auto iter : mUsers)
+	{
+		User* user = iter.second;
+
+		mUserPool.ReleaseObject(user);
+	}
 }
 
 bool LoginServer::TryRun(const unsigned long IP, const unsigned short port, const unsigned int numWorkerThread, const unsigned int numRunningThread, const unsigned int maxSessionCount, const bool bSupportsNagle)
@@ -185,11 +198,11 @@ void LoginServer::OnRecv(const sessionID_t ID, NetworkLib::Message* message)
 
 		goto SEND_PACKET;
 	}*/
-	char accountNoBuff[64];
+	char accountNoBuff[ACCOUNT_NO_BUFF_LENGTH];
 
 	sprintf(accountNoBuff, "%lld", accountNo);
 	
-	mRedis.setex(accountNoBuff, 10, sessionKey);
+	mRedis.setex(accountNoBuff, REDIS_DURATION_TIME_SEC, sessionKey);
 	mRedis.sync_commit();
 
 SEND_PACKET:
@@ -278,12 +291,10 @@ unsigned int __stdcall LoginServer::disconnectThread(void* param)
 	LARGE_INTEGER cur;
 
 	QueryPerformanceFrequency(&freq);
-
-	LONGLONG timeout = freq.QuadPart * 30;
 	
-	while (true)
+	while (!gExit)
 	{
-		Sleep(1000);
+		Sleep(DISCONNECT_PERIOD_TIME_MS);
 
 		QueryPerformanceCounter(&cur);
 
@@ -292,7 +303,7 @@ unsigned int __stdcall LoginServer::disconnectThread(void* param)
 			for (auto iter : server->mUsers)
 			{
 				User* user = iter.second;
-				if (timeout < cur.QuadPart - user->AccessTime.QuadPart)
+				if (freq.QuadPart * DISCONNECT_TIME_SEC_AFTER_RES < cur.QuadPart - user->AccessTime.QuadPart)
 				{
 					disconnectedSession.push_back(iter.first);
 				}
